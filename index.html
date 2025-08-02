@@ -1,57 +1,73 @@
-<!DOCTYPE html>
-<html lang="zh">
-<head>
-  <meta charset="UTF-8" />
-  <title>Markdown 文件展示</title>
-  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-  <style>
-    body {
-      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-      max-width: 800px;
-      margin: 2em auto;
-      padding: 0 1em;
-      background: #fafafa;
-      color: #333;
-      line-height: 1.6;
-    }
-    pre {
-      background: #f0f0f0;
-      padding: 1em;
-      border-radius: 5px;
-      overflow-x: auto;
-    }
-    code {
-      background: #eee;
-      padding: 2px 4px;
-      border-radius: 3px;
-      font-family: monospace;
-    }
-    h1, h2, h3 {
-      color: #2c3e50;
-    }
-  </style>
-</head>
-<body>
-  <h1>从 Markdown 文件读取内容</h1>
-  <div id="markdown-container">正在加载 Markdown...</div>
+<div id="markdown-container"></div>
 
-  <script>
-    async function loadMarkdownFile(url, containerId) {
-      try {
-        const res = await fetch(url);
-        if (!res.ok) throw new Error('加载失败：' + url);
-        const text = await res.text();
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script>
+  const container = document.getElementById('markdown-container');
+  let markdownFiles = [];  // 从 JSON 里加载的文件列表
+  let loadedCount = 0;
 
-        const container = document.getElementById(containerId);
-        container.innerHTML = marked.parse(text);
-      } catch (err) {
-        console.error(err);
-        document.getElementById(containerId).innerText = '加载 Markdown 失败';
+  // 加载单个 md 文件内容并渲染
+  async function loadMarkdown(url) {
+    try {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error('加载失败：' + url);
+      const text = await res.text();
+
+      const block = document.createElement('div');
+      block.className = 'markdown-block';
+      block.innerHTML = marked.parse(text);
+      container.appendChild(block);
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
+  // 初始化加载
+  async function init() {
+    try {
+      const res = await fetch('data/files.json');
+      if (!res.ok) throw new Error('加载 files.json 失败');
+      markdownFiles = await res.json();
+
+      // 加载前三个
+      const initialLoadCount = Math.min(3, markdownFiles.length);
+      for (let i = 0; i < initialLoadCount; i++) {
+        await loadMarkdown(markdownFiles[i]);
+        loadedCount++;
       }
+
+      // 监听滚动实现懒加载
+      window.addEventListener('scroll', handleScroll);
+    } catch (err) {
+      console.error(err);
+      container.innerText = '无法加载文件列表';
+    }
+  }
+
+  // 滚动处理函数
+  function handleScroll() {
+    if (loadedCount >= markdownFiles.length) {
+      window.removeEventListener('scroll', handleScroll);
+      return;
     }
 
-    // 读取仓库 data/example.md 文件并渲染
-    loadMarkdownFile('./data/example.md', 'markdown-container');
-  </script>
-</body>
-</html>
+    const scrollPosition = window.innerHeight + window.scrollY;
+    const threshold = document.body.offsetHeight - 100;
+
+    if (scrollPosition >= threshold) {
+      loadMarkdown(markdownFiles[loadedCount]);
+      loadedCount++;
+    }
+  }
+
+  init();
+</script>
+<style>
+  .markdown-block {
+    background: #fff;
+    margin: 1em 0;
+    padding: 1em;
+    border-radius: 6px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  }
+</style>
