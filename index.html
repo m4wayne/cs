@@ -1,79 +1,57 @@
 <!DOCTYPE html>
 <html lang="zh">
 <head>
-  <meta charset="UTF-8">
-  <title>📄 Markdown 数据展示</title>
+  <meta charset="UTF-8" />
+  <title>Markdown 文件展示</title>
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <style>
     body {
-      font-family: "Segoe UI", sans-serif;
-      background: #f5f7fa;
-      padding: 2em;
-      color: #2c3e50;
-    }
-    h1, h2 {
-      color: #34495e;
-    }
-    .markdown-block {
-      background: white;
-      padding: 1.2em;
-      margin-bottom: 2em;
-      border-radius: 10px;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-      transition: box-shadow 0.2s;
-    }
-    .markdown-block:hover {
-      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-    }
-    .markdown-block h3 {
-      margin-top: 0;
-    }
-    .markdown-content {
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      max-width: 800px;
+      margin: 2em auto;
+      padding: 0 1em;
+      background: #fafafa;
+      color: #333;
       line-height: 1.6;
     }
-    .markdown-content code {
+    pre {
       background: #f0f0f0;
-      padding: 0 4px;
+      padding: 1em;
+      border-radius: 5px;
+      overflow-x: auto;
+    }
+    code {
+      background: #eee;
+      padding: 2px 4px;
       border-radius: 3px;
+      font-family: monospace;
+    }
+    h1, h2, h3 {
+      color: #2c3e50;
     }
   </style>
 </head>
 <body>
-  <h1>📊 最新数据</h1>
-  <div id="latest"></div>
-
-  <h2>📜 历史记录</h2>
-  <div id="history"></div>
+  <h1>从 Markdown 文件读取内容</h1>
+  <div id="markdown-container">正在加载 Markdown...</div>
 
   <script>
-    async function loadMarkdownFromJSON(jsonFile, containerId) {
+    async function loadMarkdownFile(url, containerId) {
       try {
-        const res = await fetch(jsonFile);
-        const data = await res.json();
+        const res = await fetch(url);
+        if (!res.ok) throw new Error('加载失败：' + url);
+        const text = await res.text();
 
         const container = document.getElementById(containerId);
-        const block = document.createElement('div');
-        block.className = 'markdown-block';
-
-        block.innerHTML = `
-          <h3>🗓️ ${data.date}</h3>
-          <div class="markdown-content">${marked.parse(data.markdown)}</div>
-        `;
-        container.appendChild(block);
+        container.innerHTML = marked.parse(text);
       } catch (err) {
-        console.error(`❌ 加载失败：${jsonFile}`, err);
-        document.getElementById(containerId).innerHTML += `<p style="color:red;">⚠️ 无法读取 ${jsonFile}</p>`;
+        console.error(err);
+        document.getElementById(containerId).innerText = '加载 Markdown 失败';
       }
     }
 
-    // 加载最新数据
-    loadMarkdownFromJSON('./data/latest.json', 'latest');
-
-    // 历史记录文件列表
-    const historyFiles = ['20250801.json'];
-    historyFiles.forEach(file => {
-      loadMarkdownFromJSON(`./data/${file}`, 'history');
-    });
+    // 读取仓库 data/example.md 文件并渲染
+    loadMarkdownFile('./data/example.md', 'markdown-container');
   </script>
 </body>
 </html>
